@@ -25,7 +25,7 @@ predictions = sigmoid( X*theta );
 J = 1/m * ( -y' * log(predictions) - (1-y)' * log(1 - predictions) );
 
 for j = 1:size(theta)
-   grad(j) = 1/m * ( ones(1,m) * ( ( predictions - y ) .* X(:,j) ) );  
+   grad(j) = 1/m * ( ( predictions - y )' * X(:,j) );  
 end
 
 % =============================================================
