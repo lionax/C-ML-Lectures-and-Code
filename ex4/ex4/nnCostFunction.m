@@ -63,21 +63,32 @@ Theta2_grad = zeros(size(Theta2));
 %               and Theta2_grad from Part 2.
 %
 
-% Transpose to fit mind model of neural network
-% and to make things consistent
-A1 = X';
-Z2 = Theta1 * [ones(1,size(A1,2)); A1];
-A2 = sigmoid(Z2); % activation of hidden layer
-Z3 = Theta2 * [ones(1,size(A2,2)); A2];
-A3 = sigmoid(Z3); % activation of classifier outputs
-% output is in the form:
-% A3(K, m)
+% Helper matrix with all possible label vectors
+classes = eye(num_labels);
+% Convert the expected label vector y to a list of label vectors (matrix) Y
+Y = classes(:,y);
 
-LOGA3 = log(A3);
-LOGNEGA3 = log(ones(size(A3)) - A3);
+% Transpose to fit mind model of neural network
+% to make things consistent
+A1 = [ones(1,m) ; X']; % add +1 term
+Z2 = Theta1 * A1; % apply theta to activation of layer 1 for every example
+A2 = [ones(1,size(Z2,2)) ; sigmoid(Z2)]; % add +1 term and calc g(Z)
+Z3 = Theta2 * A2;
+A3 = sigmoid(Z3); % calc activation of classifier outputs
+% output is in the form:
+% A3(K, m) - classifier per row, examples per column
+
+%%%%
+% TODO - Vectorize last bit of algorithm...
+%%%%
+
+LOGA3 = log(A3); % first log term of equation
+LOGNEGA3 = log(ones(size(A3)) - A3); % second log term of equation
 
 for i = 1:m
     for k = 1:num_labels
+        % decide for each training example and classifier which log
+        % to use
         LOGA3(k,i) = -(y(i)==k) * LOGA3(k,i);
         LOGNEGA3(k,i) = (1 - (y(i)==k)) * LOGNEGA3(k,i);
     end
@@ -88,6 +99,30 @@ reg = sum(sum(Theta1(:,2:end) .^ 2)) + sum(sum(Theta2(:,2:end) .^ 2));
 J = 1/m * sum(sum(LOGA3 - LOGNEGA3)) + (lambda / ( 2 * m) ) * reg;
 
 % -------------------------------------------------------------
+
+% Vectorized calculation of all error terms for each training example
+% in the form E_L = A(K,m)
+E3 = A3 - Y;
+% in the form E_l = A(a_(l+1),a_l+1)
+E2 = Theta2(:,2:end)' * E3 .* sigmoidGradient(Z2);
+
+% Accumulating the delta error matrices
+D2 = E3 * A2';
+D1 = E2 * A1'; 
+
+% -------------------------------------------------------------
+
+% Calculating the final gradients
+Theta1_grad = 1/m .* D1;
+Theta2_grad = 1/m .* D2;
+
+% -------------------------------------------------------------
+
+% Adding the regularization
+Theta1_grad(:,2:end) = Theta1_grad(:,2:end) ...
+    + lambda / m * Theta1(:,2:end);
+Theta2_grad(:,2:end) = Theta2_grad(:,2:end) ...
+    + lambda / m * Theta2(:,2:end);
 
 % =========================================================================
 
